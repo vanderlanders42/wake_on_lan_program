@@ -1,12 +1,11 @@
 import wollib
 import wx
-from os import system, getenv
 import socket
-from time import sleep
 from pathlib import Path
+from subprocess import run
 
-#Wake On Lan Program
-#Copyright 2017,2018 Red Ponies A.F.
+#WOLP (Wake On Lan Program) 2.1
+#Copyright 2017,2018 Vladimir Vanderlanders
 """This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 2 of the License, or
@@ -22,8 +21,8 @@ from pathlib import Path
 #Attention, commentaires en Franglais.
 
 #Init
-print ("Wake On Lan Program Debug")
-print ("2017,2018 Red Ponies A.F.")
+print ("WOLP Debug")
+print ("2017,2018 Vladimir Vanderlanders")
 testfile = Path("macs.txt")
 if testfile.is_file():
                 conffile = open("macs.txt","r")
@@ -37,15 +36,15 @@ if testfile.is_file():
                 print(liste_odd)
 else :
                 error = wx.App()
-                wx.MessageBox("Veuillez créer un fichier nommé 'macs.txt'")
+                wx.MessageBox("Please create a file named 'macs.txt'")
                 error.MainLoop()
                 
 
 class MainFrame(wx.Frame):
 
     def load_choix(self):
-        self.choixmac.InsertColumn(0, 'Machine Distante', width=130)
-        self.choixmac.InsertColumn(1, 'Adresse MAC', width=110)
+        self.choixmac.InsertColumn(0, 'Computer Name', width=130)
+        self.choixmac.InsertColumn(1, 'MAC Address', width=110)
         l = 0
         i = 0
         for element in liste_even:
@@ -57,27 +56,27 @@ class MainFrame(wx.Frame):
                 i += 1
 
     def __init__(self, parent, title):
-        super(MainFrame, self).__init__(parent, title = title,size = (360,302))
+        super(MainFrame, self).__init__(parent, title = title,size = (360,302), style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER ^ wx.MAXIMIZE_BOX)
 
         pnl = wx.Panel(self)
 
         icon = wx.Icon()
-        icon.CopyFromBitmap(wx.Bitmap("prg.ico", wx.BITMAP_TYPE_ANY))
+        icon.CopyFromBitmap(wx.Bitmap("lib/prg.ico", wx.BITMAP_TYPE_ANY))
         self.SetIcon(icon)
 
         #Barre de menu
         self.BarreMenu()
         
         #Entrée rapide
-        textecon1 = wx.StaticText(pnl, 1, "Entrée Rapide :",pos = (5, 5)) 
-        self.entreerapide = wx.TextCtrl (pnl,pos = (90, 2))
-        reveil_b_r = wx.Button(pnl, 1,  "Réveiller", (205, 1), (135, 25))
+        textecon1 = wx.StaticText(pnl, 1, "Address :",pos = (5, 5)) 
+        self.entreerapide = wx.TextCtrl (pnl,pos = (60, 2), size = (140,-1))
+        reveil_b_r = wx.Button(pnl, 1,  "Wake", (205, 1), (135, 25))
         reveil_b_r.Bind(wx.EVT_BUTTON,self.OnReveilR)
 
         #Ajout
-        textecon2 = wx.StaticText(pnl, 1, "Nom :",pos = (50, 32))
-        self.name_machine = wx.TextCtrl (pnl,pos = (90, 29))
-        add_b = wx.Button(pnl, 1, "Ajouter aux addresses", (205, 28), (135, 25))
+        textecon2 = wx.StaticText(pnl, 1, "Name :",pos = (15, 32))
+        self.name_machine = wx.TextCtrl (pnl,pos = (60, 29), size = (140,-1))
+        add_b = wx.Button(pnl, 1, "Add to list", (205, 28), (135, 25))
         add_b.Bind(wx.EVT_BUTTON,self.OnAdd)
 
         gandalf = wx.StaticLine(pnl, 1, (0, 57), (360, 2), style=wx.LI_HORIZONTAL)
@@ -86,32 +85,32 @@ class MainFrame(wx.Frame):
         self.choixmac = wx.ListCtrl(pnl, 1,pos = (5, 65), size = (244,150), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
         self.load_choix()
                 
-        reveil_b = wx.Button(pnl, 1,  "Réveiller", (252, 65))
+        reveil_b = wx.Button(pnl, 1,  "Wake", (252, 65))
         reveil_b.Bind(wx.EVT_BUTTON,self.OnReveil)
 
         #Barre d'état
         self.CreateStatusBar()
-        self.SetStatusText("soos.")
+        self.SetStatusText("Ready.")
 
     def BarreMenu(self):
 
         fileMenu = wx.Menu()
 
-        editItem = fileMenu.Append(-1, "&Editer les adresses...\tCtrl-E",
-                "Ouvre un éditeur de texte pour editer les addresses MAC.")
+        editItem = fileMenu.Append(-1, "&Edit list\tCtrl-E",
+                "Opens text editor for editing MAC addresses.")
         fileMenu.AppendSeparator()
         
-        exitItem = fileMenu.Append(-1, "&Quitter...\tCtrl-Q",
-                "Quitte le programme.")
+        exitItem = fileMenu.Append(-1, "&Exit...\tCtrl-Q",
+                "Tired already ?")
         
         helpMenu = wx.Menu()
         
-        aboutItem = helpMenu.Append(1, "&A propos...\tCtrl-A",
-                "Ouvre les crédits du programme.")
+        aboutItem = helpMenu.Append(1, "&About...\tCtrl-A",
+                "About WOLP.")
 
         menuBar = wx.MenuBar()
-        menuBar.Append(fileMenu, "&Fichier")
-        menuBar.Append(helpMenu, "&Aide")
+        menuBar.Append(fileMenu, "&File")
+        menuBar.Append(helpMenu, "&Help")
 
         self.SetMenuBar(menuBar)
 
@@ -125,16 +124,12 @@ class MainFrame(wx.Frame):
 
     def OnAbout(self, event):
         """A propos"""
-        wx.MessageBox("Wake On Lan Program\n2.0\n2017,2018 Red Ponies A.F.\n\nUnder GPL 2 License",
+        wx.MessageBox("WOLP 2.1\nCopyright 2017,2018 Vladimir Vanderlanders\n\nUnder GNU GPL 2 License (see COPYING or LICENSE file)",
                       "About Wake On Lan Program",
                       wx.OK|wx.ICON_INFORMATION)
         
     def OnEdit(self, event):
-        editor = getenv('EDITOR')
-        if editor:
-            system('%s %s' % (getenv('EDITOR'), 'macs.txt'))
-        else:
-            system('nano macs.txt')
+        run(['nano','./macs.txt'])
         #Reload
         conffile = open("macs.txt","r")
         content = conffile.readlines()
@@ -180,11 +175,9 @@ class MainFrame(wx.Frame):
             liste_odd = liste[1:][::2]
             self.choixmac.ClearAll()
             self.load_choix()
-            self.SetStatusText("Adresse ajouté")
-            sleep(.5)
-            self.SetStatusText("soos.")
+            self.SetStatusText("Sucessfully added !")
         else :
-             wx.MessageBox("Ce n'est pas une adresse MAC !")
+             wx.MessageBox("This isn't a MAC address !")
 
 app = wx.App()
 frm = MainFrame(None, title='Wake On Lan Program')
